@@ -66,7 +66,7 @@ def notion2anki_windows(notion_directory, media_directory):
     tag_pattern = re.compile(r'[^\r\n]*Tag:\s*(\S.*\S)\s*[\r\n]')
     action_pattern = re.compile(r'[^\r\n]*Action:\s*(\S.*\S)\s+\((\S.*\S)\)\s*[\r\n]')
     code_pattern = re.compile(r'```(.*?)\n(.*?)```', re.DOTALL)
-    image_pattern = re.compile(r'!\[.*?\]\((.*?)\)')
+    image_pattern = re.compile(r'!\[.*?]\((.*?)\)')
 
     cards = {}
     for filename in os.listdir(notion_directory):
@@ -108,10 +108,15 @@ def notion2anki_windows(notion_directory, media_directory):
                 # 查找并替换Markdown中的图片路径
                 image_paths = re.findall(image_pattern, content)
                 for image_path in image_paths:
-                    content = re.sub(image_path, urllib.parse.unquote(image_path), content)
                     image_abs_path = os.path.abspath(urllib.parse.unquote(os.path.join(notion_directory, image_path)))
+
+                    new_image_path = urllib.parse.unquote(image_path)
+                    while '%' in new_image_path:
+                        new_image_path = urllib.parse.unquote(new_image_path)
+
+                    content = re.sub(image_path, new_image_path, content)
                     if pathlib.Path(image_abs_path).is_file():
-                        image_file_name = os.path.join(media_directory, os.path.split(image_abs_path)[-1])
+                        image_file_name = os.path.join(media_directory, new_image_path)
                         shutil.copy(image_abs_path, image_file_name)
                     else:
                         print(f'File not found or invalid: {image_abs_path}')
