@@ -1,12 +1,9 @@
 import re
 import sys
-from sys import flags
-
 import genanki
 import os
 import platform
 import notion2anki
-import shutil
 
 
 if platform.system() == 'Windows':

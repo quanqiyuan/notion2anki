@@ -5,6 +5,9 @@ import re
 import os
 import pathlib
 import urllib.parse
+from pygments import highlight
+from pygments.lexers import PythonLexer, JavaLexer, CppLexer  # 根据需要添加更多语言
+from pygments.formatters import HtmlFormatter
 
 
 # 定义一个包含图片的Anki卡片模型
@@ -25,7 +28,6 @@ template_notion2anki = genanki.Model(
                 <br>{{Notion}}
                 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/themes/prism-material.css" />
                 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/prism.js"></script>
-                <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-python.min.js"></script>
             ''',
         },
     ],
@@ -48,7 +50,7 @@ template_notion2anki = genanki.Model(
             height: auto;  # 保持图片原始宽高比
         }
         pre {
-            background: #282c34;
+            background: #d3d3d3;
             color: #abb2bf;
             padding: 10px;
             border-radius: 5px;
@@ -62,6 +64,13 @@ template_notion2anki = genanki.Model(
     '''
 )
 
+# 语言到lexer的映射
+lexer_mapping = {
+    'python': PythonLexer,
+    'java': JavaLexer,
+    'cpp': CppLexer,
+    # 根据需要添加更多语言
+}
 
 # 列出Markdown文件，并为每个文件生成一张卡片
 def notion2anki(notion_directory, media_directory):
@@ -84,27 +93,20 @@ def notion2anki(notion_directory, media_directory):
                 content = file.read()
 
                 question_match = question_pattern.match(content)
-                if question_match:
-                    question = question_match.group(1)
-                    content = question_pattern.sub('', content)
-                else:
-                    question = ''
+                question = question_match.group(1) if question_match else ''
 
                 tag_match = tag_pattern.search(content)
-                if tag_match:
-                    tag = tag_match.group(1)
-                    content = tag_pattern.sub('', content)
-                else:
+                tag = tag_match.group(1) if tag_match else ''
+                if not tag:
                     print(f'!!! {filename} is not tagged.')
 
                 action_match = action_pattern.search(content)
-                if action_match:
-                    action_name, action_link = action_match.group(1,2)
-                    content = action_pattern.sub('', content)
-                else:
-                    action_name, action_link = '', ''
+                action_name, action_link = action_match.group(1, 2) if action_match else ('', '')
                 notion = f'<a href="{action_link}">{action_name}</a>'
 
+                content = tag_pattern.sub('', content)
+                content = question_pattern.sub('', content)
+                content = action_pattern.sub('', content)
                 content = date_pattern.sub('', content)
                 content = block_code_pattern.sub(r'<pre><code class="\1">\2</code></pre>', content)
                 content = inline_code_pattern.sub(r'<code>\1</code>', content)
