@@ -26,8 +26,8 @@ template_notion2anki = genanki.Model(
             'afmt': '''{{FrontSide}}<hr id="answer">
                 <div class="left-align">{{Answer}}</div>
                 <br>{{Notion}}
-                <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/themes/prism-material.css" />
-                <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/prism.js"></script>
+                <link rel="stylesheet" href="_prism.css">
+                <script src="_prism.js"></script>
             ''',
         },
     ],
@@ -58,7 +58,7 @@ template_notion2anki = genanki.Model(
             font-family: 'Courier New', Courier, monospace; /* 等宽字体 */
         }
         code {
-            color: #61afef;
+            color: #15400e;
             font-family: 'Courier New', Courier, monospace; /* 等宽字体 */ 
         }
     '''
@@ -108,7 +108,7 @@ def notion2anki(notion_directory, media_directory):
                 content = question_pattern.sub('', content)
                 content = action_pattern.sub('', content)
                 content = date_pattern.sub('', content)
-                content = block_code_pattern.sub(r'<pre><code class="\1">\2</code></pre>', content)
+                content = block_code_pattern.sub(r'<pre><code class="language-\1">\2</code></pre>', content)
                 content = inline_code_pattern.sub(r'<code>\1</code>', content)
                 content = block_equation_pattern.sub(r'\1\\\[\2\\\]\3', content)
                 content = inline_equation_pattern.sub(r'\\\(\1\\\)', content)
