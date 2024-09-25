@@ -8,7 +8,7 @@ import urllib.parse
 
 
 # 定义一个包含图片的Anki卡片模型
-notion2anki = genanki.Model(
+template_notion2anki = genanki.Model(
     1607392322,
     'Notion2Anki',
     fields=[
@@ -20,7 +20,9 @@ notion2anki = genanki.Model(
         {
             'name': 'Card 1',
             'qfmt': '{{Question}}',
-            'afmt': '''{{FrontSide}}<hr id="answer">{{Answer}}<br>{{Notion}}
+            'afmt': '''{{FrontSide}}<hr id="answer">
+                <div class="left-align">{{Answer}}</div>
+                <br>{{Notion}}
                 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/themes/prism-material.css" />
                 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/prism.js"></script>
                 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.24.1/components/prism-python.min.js"></script>
@@ -34,6 +36,9 @@ notion2anki = genanki.Model(
             text-align: center;
             color: black;
             background-color: white;
+        }
+        .left-align {
+            text-align: left;
         }
         a {
             color: blue;
@@ -65,8 +70,11 @@ def notion2anki(notion_directory, media_directory):
     date_pattern = re.compile(r'[^\r\n]*Date:\s*(\S.*\S)\s*[\r\n]')
     tag_pattern = re.compile(r'[^\r\n]*Tag:\s*(\S.*\S)\s*[\r\n]')
     action_pattern = re.compile(r'[^\r\n]*Action:\s*(\S.*\S)\s+\((\S.*\S)\)\s*[\r\n]')
-    code_pattern = re.compile(r'```(.*?)\n(.*?)```', re.DOTALL)
+    inline_code_pattern = re.compile(r'`(.*?)`')
+    block_code_pattern = re.compile(r'```(.*?)\n(.*?)```', re.DOTALL)
     image_pattern = re.compile(r'!\[.*?]\((.*?)\)')
+    block_equation_pattern = re.compile(r'([\r\n]\s*)\$(.*?)\$(\s*[\r\n])')
+    inline_equation_pattern = re.compile(r'\$(.*?)\$')
 
     cards = {}
     for filename in os.listdir(notion_directory):
@@ -81,10 +89,6 @@ def notion2anki(notion_directory, media_directory):
                     content = question_pattern.sub('', content)
                 else:
                     question = ''
-
-                date_match = date_pattern.search(content)
-                if date_match:
-                    content = date_pattern.sub('', content)
 
                 tag_match = tag_pattern.search(content)
                 if tag_match:
@@ -101,9 +105,11 @@ def notion2anki(notion_directory, media_directory):
                     action_name, action_link = '', ''
                 notion = f'<a href="{action_link}">{action_name}</a>'
 
-                code_match = code_pattern.search(content)
-                if code_match:
-                    content = code_pattern.sub(r'<pre><code class="\1">\2</code></pre>', content)
+                content = date_pattern.sub('', content)
+                content = block_code_pattern.sub(r'<pre><code class="\1">\2</code></pre>', content)
+                content = inline_code_pattern.sub(r'<code>\1</code>', content)
+                content = block_equation_pattern.sub(r'\1\\\[\2\\\]\3', content)
+                content = inline_equation_pattern.sub(r'\\\(\1\\\)', content)
 
                 # 查找并替换Markdown中的图片路径
                 image_paths = re.findall(image_pattern, content)
@@ -122,7 +128,10 @@ def notion2anki(notion_directory, media_directory):
                         print(f'File not found or invalid: {image_abs_path}')
 
                 # 将Markdown内容转换为HTML
+                double_underscore_replace = 'double-underscore'
+                content = content.replace('__', double_underscore_replace)
                 answer = markdown.markdown(content, output_format='html')
+                answer = answer.replace(double_underscore_replace, '__')
 
                 if tag not in cards:
                     cards[tag] = set()
