@@ -59,7 +59,7 @@ notion2anki = genanki.Model(
 
 
 # 列出Markdown文件，并为每个文件生成一张卡片
-def notion2anki_windows(notion_directory, media_directory):
+def notion2anki(notion_directory, media_directory):
     # 正则表达式，用于识别Markdown中的图片标签
     question_pattern = re.compile(r'^\s*#\s*(\S.*\S)+[\r\n]')
     date_pattern = re.compile(r'[^\r\n]*Date:\s*(\S.*\S)\s*[\r\n]')
@@ -113,8 +113,8 @@ def notion2anki_windows(notion_directory, media_directory):
                     new_image_path = urllib.parse.unquote(image_path)
                     while '%' in new_image_path:
                         new_image_path = urllib.parse.unquote(new_image_path)
-
                     content = re.sub(image_path, new_image_path, content)
+
                     if pathlib.Path(image_abs_path).is_file():
                         image_file_name = os.path.join(media_directory, new_image_path)
                         shutil.copy(image_abs_path, image_file_name)

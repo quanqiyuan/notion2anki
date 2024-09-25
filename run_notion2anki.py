@@ -11,14 +11,12 @@ import shutil
 
 if platform.system() == 'Windows':
     anki_path = os.path.join(os.environ.get('APPDATA'), 'Anki2')
-    media_path = os.path.join(anki_path, 'QQ/collection.media')
+    notion_path = f'C:\\Users\\DELL\\Downloads\\aaa'  # 替换为你的md文件目录
 else:
-    # 定义要处理的Markdown文件路径和图片文件目录
-    pass
-
-
-notion_path = f'C:\\Users\\DELL\\Downloads\\aaa'  # 替换为你的md文件目录
-card_dict = notion2anki.notion2anki_windows(notion_path, media_path)
+    anki_path = f'/Users/quanqiyuan/Library/Application Support/Anki2/'
+    notion_path = f'/Users/quanqiyuan/Downloads/aaa'  # 替换为你的md文件目录
+media_path = os.path.join(anki_path, 'QQ/collection.media')
+card_dict = notion2anki.notion2anki(notion_path, media_path)
 
 
 deck_dict = notion2anki.deck_dict
