@@ -22,7 +22,7 @@ template_notion2anki = genanki.Model(
     templates=[
         {
             'name': 'Card 1',
-            'qfmt': '{{Question}}',
+            'qfmt': '<div class="left-align">{{Question}}</div>',
             'afmt': '''{{FrontSide}}<hr id="answer">
                 <div class="left-align">{{Answer}}</div>
                 <br>{{Notion}}
@@ -56,7 +56,7 @@ template_notion2anki = genanki.Model(
         }
         code {
             color: #204a87;
-            font-weight: bold;
+            background: #f8f8f8;
             white-space: nowrap;
             font-family: 'Courier New', Courier, monospace; /* 等宽字体 */ 
         }
