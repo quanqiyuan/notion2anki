@@ -6,7 +6,7 @@ import os
 import pathlib
 import urllib.parse
 from pygments import highlight
-from pygments.lexers import PythonLexer, JavaLexer, CppLexer  # 根据需要添加更多语言
+from pygments.lexers import PythonLexer, JavaLexer, CppLexer, guess_lexer  # 根据需要添加更多语言
 from pygments.formatters import HtmlFormatter
 
 
@@ -26,8 +26,7 @@ template_notion2anki = genanki.Model(
             'afmt': '''{{FrontSide}}<hr id="answer">
                 <div class="left-align">{{Answer}}</div>
                 <br>{{Notion}}
-                <link rel="stylesheet" href="_prism.css">
-                <script src="_prism.js"></script>
+                <link rel="stylesheet" href="_tango.css">
             ''',
         },
     ],
@@ -50,15 +49,15 @@ template_notion2anki = genanki.Model(
             height: auto;  # 保持图片原始宽高比
         }
         pre {
-            background: #d3d3d3;
-            color: #abb2bf;
             padding: 10px;
             border-radius: 5px;
             overflow: auto;
             font-family: 'Courier New', Courier, monospace; /* 等宽字体 */
         }
         code {
-            color: #15400e;
+            color: #204a87;
+            font-weight: bold;
+            white-space: nowrap;
             font-family: 'Courier New', Courier, monospace; /* 等宽字体 */ 
         }
     '''
@@ -66,7 +65,7 @@ template_notion2anki = genanki.Model(
 
 # 语言到lexer的映射
 lexer_mapping = {
-    'python': PythonLexer,
+    'python': PythonLexer(),
     'java': JavaLexer,
     'cpp': CppLexer,
     # 根据需要添加更多语言
@@ -108,7 +107,7 @@ def notion2anki(notion_directory, media_directory):
                 content = question_pattern.sub('', content)
                 content = action_pattern.sub('', content)
                 content = date_pattern.sub('', content)
-                content = block_code_pattern.sub(r'<pre><code class="language-\1">\2</code></pre>', content)
+                content = block_code_pattern.sub(lambda m: rf'{highlight(m.group(2), lexer_mapping.get(m.group(1), guess_lexer(m.group(2))), HtmlFormatter())}', content)
                 content = inline_code_pattern.sub(r'<code>\1</code>', content)
                 content = block_equation_pattern.sub(r'\1\\\[\2\\\]\3', content)
                 content = inline_equation_pattern.sub(r'\\\(\1\\\)', content)
