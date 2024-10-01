@@ -70,6 +70,17 @@ lexer_mapping = {
     'cpp': CppLexer,
     # 根据需要添加更多语言
 }
+def format_block_code(match_object):
+    tab_string = match_object.group(1)
+    code_language = match_object.group(2)
+    code_content = match_object.group(3)
+
+    html_code = highlight(code_content, lexer_mapping.get(code_language, guess_lexer(code_content)), HtmlFormatter())
+    tab_count = len(re.findall(' ', tab_string))
+    html_code = f'<div>' + html_code + f'</div>'
+
+    return html_code
+
 
 # 列出Markdown文件，并为每个文件生成一张卡片
 def notion2anki(notion_directory, media_directory):
@@ -78,9 +89,9 @@ def notion2anki(notion_directory, media_directory):
     date_pattern = re.compile(r'[^\r\n]*Date:\s*(\S.*\S)\s*[\r\n]')
     tag_pattern = re.compile(r'[^\r\n]*Tag:\s*(\S.*\S)\s*[\r\n]')
     action_pattern = re.compile(r'[^\r\n]*Action:\s*(\S.*\S)\s+\((\S.*\S)\)\s*[\r\n]')
-    inline_code_pattern = re.compile(r'`(.*?)`')
-    block_code_pattern = re.compile(r'```(.*?)\n(.*?)```', re.DOTALL)
     image_pattern = re.compile(r'!\[.*?]\((.*?)\)')
+    block_code_pattern = re.compile(r'( *)```(.*?)\n(.*?)```', re.DOTALL)
+    inline_code_pattern = re.compile(r'`(.*?)`')
     block_equation_pattern = re.compile(r'([\r\n]\s*)\$(.*?)\$(\s*[\r\n])')
     inline_equation_pattern = re.compile(r'\$(.*?)\$')
 
@@ -93,6 +104,11 @@ def notion2anki(notion_directory, media_directory):
 
                 question_match = question_pattern.match(content)
                 question = question_match.group(1) if question_match else ''
+
+                question = block_code_pattern.sub(lambda m:format_block_code(m), question)
+                question = inline_code_pattern.sub(r'<code>\1</code>', question)
+                question = block_equation_pattern.sub(r'\1\\\[\2\\\]\3', question)
+                question = inline_equation_pattern.sub(r'\\\(\1\\\)', question)
 
                 tag_match = tag_pattern.search(content)
                 tag = tag_match.group(1) if tag_match else ''
@@ -107,7 +123,7 @@ def notion2anki(notion_directory, media_directory):
                 content = question_pattern.sub('', content)
                 content = action_pattern.sub('', content)
                 content = date_pattern.sub('', content)
-                content = block_code_pattern.sub(lambda m: rf'{highlight(m.group(2), lexer_mapping.get(m.group(1), guess_lexer(m.group(2))), HtmlFormatter())}', content)
+                content = block_code_pattern.sub(lambda m:format_block_code(m), content)
                 content = inline_code_pattern.sub(r'<code>\1</code>', content)
                 content = block_equation_pattern.sub(r'\1\\\[\2\\\]\3', content)
                 content = inline_equation_pattern.sub(r'\\\(\1\\\)', content)
