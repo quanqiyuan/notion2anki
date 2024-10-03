@@ -70,6 +70,8 @@ lexer_mapping = {
     'cpp': CppLexer,
     # 根据需要添加更多语言
 }
+
+
 def format_block_code(match_object):
     tab_string = match_object.group(1)
     code_language = match_object.group(2)
@@ -89,11 +91,11 @@ def notion2anki(notion_directory, media_directory):
     date_pattern = re.compile(r'[^\r\n]*Date:\s*(\S.*\S)\s*[\r\n]')
     tag_pattern = re.compile(r'[^\r\n]*Tag:\s*(\S.*\S)\s*[\r\n]')
     action_pattern = re.compile(r'[^\r\n]*Action:\s*(\S.*\S)\s+\((\S.*\S)\)\s*[\r\n]')
-    image_pattern = re.compile(r'!\[.*?]\((.*?)\)')
     block_code_pattern = re.compile(r'( *)```(.*?)\n(.*?)```', re.DOTALL)
     inline_code_pattern = re.compile(r'`(.*?)`')
     block_equation_pattern = re.compile(r'([\r\n]\s*)\$(.*?)\$(\s*[\r\n])')
     inline_equation_pattern = re.compile(r'\$(.*?)\$')
+    image_pattern = re.compile(r'!\[.*?]\((.*?)\)')
 
     cards = {}
     for filename in os.listdir(notion_directory):
@@ -124,9 +126,10 @@ def notion2anki(notion_directory, media_directory):
                 content = action_pattern.sub('', content)
                 content = date_pattern.sub('', content)
                 content = block_code_pattern.sub(lambda m:format_block_code(m), content)
-                content = inline_code_pattern.sub(r'<code>\1</code>', content)
+                content = inline_code_pattern.sub(lambda m:r'<code>{m.group(1)}</code>' if '*' not in m.group(1) else rf'<code>{m.group(1).replace("*","\*")}</code>', content)
                 content = block_equation_pattern.sub(r'\1\\\[\2\\\]\3', content)
                 content = inline_equation_pattern.sub(r'\\\(\1\\\)', content)
+                print(content)
 
                 # 查找并替换Markdown中的图片路径
                 image_paths = re.findall(image_pattern, content)
@@ -156,4 +159,4 @@ def notion2anki(notion_directory, media_directory):
     return cards
 
 
-deck_dict = {'default': 100000000, 'Python': 100000001, 'DFT': 100000002, 'SOC': 100000003, 'STA': 100000004, 'CPU': 100000005}
+deck_dict = {'default': 100000000, 'Python': 100000001, 'DFT': 100000002, 'SOC': 100000003, 'STA': 100000004, 'CPU': 100000005, '': 100000006}
