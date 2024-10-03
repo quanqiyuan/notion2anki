@@ -129,7 +129,6 @@ def notion2anki(notion_directory, media_directory):
                 content = inline_code_pattern.sub(lambda m:r'<code>{m.group(1)}</code>' if '*' not in m.group(1) else rf'<code>{m.group(1).replace("*","\*")}</code>', content)
                 content = block_equation_pattern.sub(r'\1\\\[\2\\\]\3', content)
                 content = inline_equation_pattern.sub(r'\\\(\1\\\)', content)
-                print(content)
 
                 # 查找并替换Markdown中的图片路径
                 image_paths = re.findall(image_pattern, content)
