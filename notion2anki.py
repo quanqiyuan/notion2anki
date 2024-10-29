@@ -41,6 +41,9 @@ template_notion2anki = genanki.Model(
         .left-align {
             text-align: left;
         }
+        .wrapper {
+            margin-left: 16px;
+        }
         a {
             color: blue;
         }  # 使链接以蓝色显示
@@ -59,6 +62,23 @@ template_notion2anki = genanki.Model(
             background: #f8f8f8;
             white-space: nowrap;
             font-family: 'Courier New', Courier, monospace; /* 等宽字体 */ 
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 20px 0;
+        }
+        td {
+            padding: 8px;
+            text-align: left;
+            border: 1px solid #ddd;
+        }
+        th {
+            background-color: #f2f2f2;
+            color: #444;
+        }
+        tr:nth-child(ddd) {
+            background-color: #f9f9f9;
         }
     '''
 )
@@ -87,8 +107,8 @@ def format_block_code(match_object):
 
 def format_inline_code(match_object):
     result = match_object.group(1)
-    result = result.replace(r"*", r"\*")
-    #result = result.replace("\\", "\\\\")
+    result = result.replace(r'*', r'\*')
+    #result = result.replace('\\', '\\\\')
     return rf'<code>{result}</code>'
 
 
@@ -146,6 +166,7 @@ def notion2anki(notion_directory, media_directory):
                     new_image_path = urllib.parse.unquote(image_path)
                     while '%' in new_image_path:
                         new_image_path = urllib.parse.unquote(new_image_path)
+                    new_image_path = f'{question}_{new_image_path}'
                     content = re.sub(image_path, new_image_path, content)
 
                     if pathlib.Path(image_abs_path).is_file():
@@ -157,7 +178,7 @@ def notion2anki(notion_directory, media_directory):
                 # 将Markdown内容转换为HTML
                 double_underscore_replace = 'double-underscore'
                 content = content.replace('__', double_underscore_replace)
-                answer = markdown.markdown(content, output_format='html')
+                answer = markdown.markdown(content, output_format='html', extensions=['markdown.extensions.tables'])
                 answer = answer.replace(double_underscore_replace, '__')
 
                 if tag not in cards:
