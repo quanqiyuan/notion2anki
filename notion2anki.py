@@ -76,12 +76,20 @@ def format_block_code(match_object):
     tab_string = match_object.group(1)
     code_language = match_object.group(2)
     code_content = match_object.group(3)
+    #code_content = code_content.replace("\\", "\\\\")
 
     html_code = highlight(code_content, lexer_mapping.get(code_language, guess_lexer(code_content)), HtmlFormatter())
     tab_count = len(re.findall(' ', tab_string))
     html_code = f'<div>' + html_code + f'</div>'
 
     return html_code
+
+
+def format_inline_code(match_object):
+    result = match_object.group(1)
+    result = result.replace(r"*", r"\*")
+    #result = result.replace("\\", "\\\\")
+    return rf'<code>{result}</code>'
 
 
 # 列出Markdown文件，并为每个文件生成一张卡片
@@ -126,7 +134,7 @@ def notion2anki(notion_directory, media_directory):
                 content = action_pattern.sub('', content)
                 content = date_pattern.sub('', content)
                 content = block_code_pattern.sub(lambda m:format_block_code(m), content)
-                content = inline_code_pattern.sub(lambda m:r'<code>{m.group(1)}</code>' if '*' not in m.group(1) else rf'<code>{m.group(1).replace("*","\*")}</code>', content)
+                content = inline_code_pattern.sub(lambda m:format_inline_code(m), content)
                 content = block_equation_pattern.sub(r'\1\\\[\2\\\]\3', content)
                 content = inline_equation_pattern.sub(r'\\\(\1\\\)', content)
 
