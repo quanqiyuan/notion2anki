@@ -115,10 +115,11 @@ def format_inline_code(match_object):
 # 列出Markdown文件，并为每个文件生成一张卡片
 def notion2anki(notion_directory, media_directory):
     # 正则表达式，用于识别Markdown中的图片标签
-    question_pattern = re.compile(r'^\s*#\s*(\S.*\S)+[\r\n]')
+    question_pattern = re.compile(r'^\s*#\s+(\S.*\S)+[\r\n]')
     date_pattern = re.compile(r'[^\r\n]*Date:\s*(\S.*\S)\s*[\r\n]')
-    tag_pattern = re.compile(r'[^\r\n]*Tag:\s*(\S.*\S)\s*[\r\n]')
+    deck_pattern = re.compile(r'[^\r\n]*Deck:\s*(\S.*\S)\s*[\r\n]')
     action_pattern = re.compile(r'[^\r\n]*Action:\s*(\S.*\S)\s+\((\S.*\S)\)\s*[\r\n]')
+    question_image_pattern = re.compile(r'[^\r\n]*Question Image:\s*(\S.*\S)[\r\n]')
     block_code_pattern = re.compile(r'( *)```(.*?)\n(.*?)```', re.DOTALL)
     inline_code_pattern = re.compile(r'`(.*?)`')
     block_equation_pattern = re.compile(r'([\r\n]\s*)\$(.*?)\$(\s*[\r\n])')
@@ -140,17 +141,38 @@ def notion2anki(notion_directory, media_directory):
                 question = block_equation_pattern.sub(r'\1\\\[\2\\\]\3', question)
                 question = inline_equation_pattern.sub(r'\\\(\1\\\)', question)
 
-                tag_match = tag_pattern.search(content)
-                tag = tag_match.group(1) if tag_match else ''
-                if not tag:
-                    print(f'!!! {filename} is not tagged.')
+                no_image_question = question[:20]
+
+                question_image_match = question_image_pattern.search(content)
+                if question_image_match:
+                    question_image_list = question_image_match.group(1).replace(' ', '').split(',')
+                    for image_path in question_image_list:
+                        image_abs_path = os.path.abspath(urllib.parse.unquote(os.path.join(notion_directory, image_path)))
+
+                        new_image_path = urllib.parse.unquote(image_path)
+                        while '%' in new_image_path:
+                            new_image_path = urllib.parse.unquote(new_image_path)
+                        new_image_path = f'{question}_{new_image_path}'
+
+                        if pathlib.Path(image_abs_path).is_file():
+                            image_file_name = os.path.join(media_directory, new_image_path)
+                            shutil.copy(image_abs_path, image_file_name)
+                        else:
+                            print(f'File not found or invalid: {image_abs_path}')
+                        question = question + f'![]({new_image_path})'
+
+                deck_match = deck_pattern.search(content)
+                deck = deck_match.group(1) if deck_match else ''
+                if not deck:
+                    print(f'!!! {filename} is not decked.')
 
                 action_match = action_pattern.search(content)
                 action_name, action_link = action_match.group(1, 2) if action_match else ('', '')
                 notion = f'<a href="{action_link}">{action_name}</a>'
 
-                content = tag_pattern.sub('', content)
+                content = deck_pattern.sub('', content)
                 content = question_pattern.sub('', content)
+                content = question_image_pattern.sub('', content)
                 content = action_pattern.sub('', content)
                 content = date_pattern.sub('', content)
                 content = block_code_pattern.sub(lambda m:format_block_code(m), content)
@@ -166,7 +188,7 @@ def notion2anki(notion_directory, media_directory):
                     new_image_path = urllib.parse.unquote(image_path)
                     while '%' in new_image_path:
                         new_image_path = urllib.parse.unquote(new_image_path)
-                    new_image_path = f'{question}_{new_image_path}'
+                    new_image_path = f'{no_image_question}_{new_image_path}'
                     content = re.sub(image_path, new_image_path, content)
 
                     if pathlib.Path(image_abs_path).is_file():
@@ -178,12 +200,14 @@ def notion2anki(notion_directory, media_directory):
                 # 将Markdown内容转换为HTML
                 double_underscore_replace = 'double-underscore'
                 content = content.replace('__', double_underscore_replace)
+                question = markdown.markdown(question, output_format='html', extensions=['markdown.extensions.tables'])
+                question = question.replace(double_underscore_replace, '__')
                 answer = markdown.markdown(content, output_format='html', extensions=['markdown.extensions.tables'])
                 answer = answer.replace(double_underscore_replace, '__')
 
-                if tag not in cards:
-                    cards[tag] = set()
-                cards[tag].add((question, answer, notion))
+                if deck not in cards:
+                    cards[deck] = set()
+                cards[deck].add((question, answer, notion))
     return cards
 
 
