@@ -143,7 +143,7 @@ def notion2anki(notion_directory, media_directory):
                 question = block_equation_pattern.sub(r'\1\\\[\2\\\]\3', question)
                 question = inline_equation_pattern.sub(r'\\\(\1\\\)', question)
 
-                no_image_question = question[:20]
+                no_image_question = question[:10]
 
                 question_image_match = question_image_pattern.search(content)
                 if question_image_match:
@@ -154,7 +154,7 @@ def notion2anki(notion_directory, media_directory):
                         new_image_path = urllib.parse.unquote(image_path)
                         while '%' in new_image_path:
                             new_image_path = urllib.parse.unquote(new_image_path)
-                        new_image_path = f'{question}_{new_image_path}'
+                        new_image_path = f'{no_image_question}_{new_image_path}'
 
                         if pathlib.Path(image_abs_path).is_file():
                             image_file_name = os.path.join(media_directory, new_image_path)
