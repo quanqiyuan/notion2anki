@@ -92,21 +92,16 @@ lexer_mapping = {
 }
 
 
-def replace_em_tags(match):
-    # 获取匹配的子字符串
-    substring = match.group(0)
-    # 替换 <em> 和 </em>
-    return re.sub(r'</?em>', '_', substring)
-
+def replace_slash(match):
+    substring = match.group(1)
+    return re.sub(r'\\', 'SLASH', substring)
 
 def format_block_equation(match_object):
-    equation = match_object.group(2)
-    new_equation = equation.replace('\\', '\\\\')
+    new_equation = replace_slash(match_object)
     return r'\\[' + rf'{new_equation}' + r'\\]'
 
 def format_inline_equation(match_object):
-    equation = match_object.group(1)
-    new_equation = equation.replace('\\', '\\\\')
+    new_equation = replace_slash(match_object)
     return r'\\(' + rf'{new_equation}' + r'\\)'
 
 def format_block_code(match_object):
@@ -114,13 +109,10 @@ def format_block_code(match_object):
     code_language = match_object.group(2)
     code_content = match_object.group(3)
     code_content = code_content.replace('\\', '\\\\')
-
     html_code = highlight(code_content, lexer_mapping.get(code_language, guess_lexer(code_content)), HtmlFormatter())
     tab_count = len(re.findall(' ', tab_string))
     html_code = f'<div>' + html_code + f'</div>'
-
     return html_code
-
 
 def format_inline_code(match_object):
     result = match_object.group(1)
@@ -132,6 +124,7 @@ def format_inline_code(match_object):
 # 列出Markdown文件，并为每个文件生成一张卡片
 def notion2anki(notion_directory, media_directory):
     # 正则表达式，用于识别Markdown中的图片标签
+    slash_pattern = re.compile(r'\\')
     question_pattern = re.compile(r'^\s*#\s+(\S.*\S)+[\r\n]')
     date_pattern = re.compile(r'[^\r\n]*Date:\s*(\S.*\S)\s*[\r\n]')
     deck_pattern = re.compile(r'[^\r\n]*Deck:\s*(\S.*\S)\s*[\r\n]')
@@ -140,7 +133,7 @@ def notion2anki(notion_directory, media_directory):
     question_image_pattern = re.compile(r'[^\r\n]*Question Image:\s*(\S.*\S)[\r\n]')
     block_code_pattern = re.compile(r'( *)```(.*?)\n(.*?)```', re.DOTALL)
     inline_code_pattern = re.compile(r'`(.*?)`')
-    block_equation_pattern = re.compile(r'\$\$([\r\n\s]*)(.*?)([\r\n\s]*)\$\$',re.DOTALL)
+    block_equation_pattern = re.compile(r'\$\$[\r\n\s]*(.*?)[\r\n\s]*\$\$',re.DOTALL)
     inline_equation_pattern = re.compile(r'\$(.*?)\$')
     image_pattern = re.compile(r'!\[.*?]\((.*?)\)')
 
@@ -223,8 +216,7 @@ def notion2anki(notion_directory, media_directory):
                 question = question.replace(double_underscore_replace, '__')
                 answer = markdown.markdown(content, output_format='html', extensions=['markdown.extensions.tables'])
                 answer = answer.replace(double_underscore_replace, '__')
-                answer = re.sub(r'\\\[(.*?)\\\]', replace_em_tags, answer)
-                answer = re.sub(r'\\\((.*?)\\\)', replace_em_tags, answer)
+                answer = re.sub(r'SLASH', r'\\', answer, re.DOTALL)
 
                 if deck not in cards:
                     cards[deck] = set()
