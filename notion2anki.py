@@ -21,7 +21,7 @@ template_notion2anki = genanki.Model(
     ],
     templates=[
         {
-            'name': 'Card 1',
+            'name': 'notion2anki',
             'qfmt': '<div class="left-align">{{Question}}</div>',
             'afmt': '''{{FrontSide}}<hr id="answer">
                 <div class="left-align">{{Answer}}</div>
@@ -92,11 +92,28 @@ lexer_mapping = {
 }
 
 
+def replace_em_tags(match):
+    # 获取匹配的子字符串
+    substring = match.group(0)
+    # 替换 <em> 和 </em>
+    return re.sub(r'</?em>', '_', substring)
+
+
+def format_block_equation(match_object):
+    equation = match_object.group(2)
+    new_equation = equation.replace('\\', '\\\\')
+    return r'\\[' + rf'{new_equation}' + r'\\]'
+
+def format_inline_equation(match_object):
+    equation = match_object.group(1)
+    new_equation = equation.replace('\\', '\\\\')
+    return r'\\(' + rf'{new_equation}' + r'\\)'
+
 def format_block_code(match_object):
     tab_string = match_object.group(1)
     code_language = match_object.group(2)
     code_content = match_object.group(3)
-    #code_content = code_content.replace("\\", "\\\\")
+    code_content = code_content.replace('\\', '\\\\')
 
     html_code = highlight(code_content, lexer_mapping.get(code_language, guess_lexer(code_content)), HtmlFormatter())
     tab_count = len(re.findall(' ', tab_string))
@@ -108,7 +125,7 @@ def format_block_code(match_object):
 def format_inline_code(match_object):
     result = match_object.group(1)
     result = result.replace(r'*', r'\*')
-    #result = result.replace('\\', '\\\\')
+    result = result.replace('\\', '\\\\')
     return rf'<code>{result}</code>'
 
 
@@ -123,9 +140,8 @@ def notion2anki(notion_directory, media_directory):
     question_image_pattern = re.compile(r'[^\r\n]*Question Image:\s*(\S.*\S)[\r\n]')
     block_code_pattern = re.compile(r'( *)```(.*?)\n(.*?)```', re.DOTALL)
     inline_code_pattern = re.compile(r'`(.*?)`')
-    #block_equation_pattern = re.compile(r'([\r\n]\s*)\$+(.*?)\$+(\s*[\r\n])',re.DOTALL)
-    block_equation_pattern = re.compile(r'([\r\n]\s*)\$+[\r\n]\s*(.*?)[\r\n]\s*\$+(\s*[\r\n])')
-    inline_equation_pattern = re.compile(r'\$+(.*?)\$+')
+    block_equation_pattern = re.compile(r'\$\$([\r\n\s]*)(.*?)([\r\n\s]*)\$\$',re.DOTALL)
+    inline_equation_pattern = re.compile(r'\$(.*?)\$')
     image_pattern = re.compile(r'!\[.*?]\((.*?)\)')
 
     cards = {}
@@ -140,8 +156,8 @@ def notion2anki(notion_directory, media_directory):
 
                 question = block_code_pattern.sub(lambda m:format_block_code(m), question)
                 question = inline_code_pattern.sub(r'<code>\1</code>', question)
-                question = block_equation_pattern.sub(r'\1\\\[\2\\\]\3', question)
-                question = inline_equation_pattern.sub(r'\\\(\1\\\)', question)
+                question = block_equation_pattern.sub(lambda m:format_block_equation(m), question)
+                question = inline_equation_pattern.sub(lambda m:format_inline_equation(m), question)
 
                 no_image_question = question[:10]
 
@@ -180,8 +196,8 @@ def notion2anki(notion_directory, media_directory):
                 content = last_edited_pattern.sub('', content)
                 content = block_code_pattern.sub(lambda m:format_block_code(m), content)
                 content = inline_code_pattern.sub(lambda m:format_inline_code(m), content)
-                content = block_equation_pattern.sub(r'\1\\\[\2\\\]\3', content)
-                content = inline_equation_pattern.sub(r'\\\(\1\\\)', content)
+                content = block_equation_pattern.sub(lambda m:format_block_equation(m), content)
+                content = inline_equation_pattern.sub(lambda m:format_inline_equation(m), content)
 
                 # 查找并替换Markdown中的图片路径
                 image_paths = re.findall(image_pattern, content)
@@ -207,6 +223,8 @@ def notion2anki(notion_directory, media_directory):
                 question = question.replace(double_underscore_replace, '__')
                 answer = markdown.markdown(content, output_format='html', extensions=['markdown.extensions.tables'])
                 answer = answer.replace(double_underscore_replace, '__')
+                answer = re.sub(r'\\\[(.*?)\\\]', replace_em_tags, answer)
+                answer = re.sub(r'\\\((.*?)\\\)', replace_em_tags, answer)
 
                 if deck not in cards:
                     cards[deck] = set()
