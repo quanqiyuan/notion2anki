@@ -124,7 +124,6 @@ def format_inline_code(match_object):
 # 列出Markdown文件，并为每个文件生成一张卡片
 def notion2anki(notion_directory, media_directory):
     # 正则表达式，用于识别Markdown中的图片标签
-    slash_pattern = re.compile(r'\\')
     question_pattern = re.compile(r'^\s*#\s+(\S.*\S)+[\r\n]')
     date_pattern = re.compile(r'[^\r\n]*Date:\s*(\S.*\S)\s*[\r\n]')
     deck_pattern = re.compile(r'[^\r\n]*Deck:\s*(\S.*\S)\s*[\r\n]')
@@ -134,7 +133,7 @@ def notion2anki(notion_directory, media_directory):
     block_code_pattern = re.compile(r'( *)```(.*?)\n(.*?)```', re.DOTALL)
     inline_code_pattern = re.compile(r'`(.*?)`')
     block_equation_pattern = re.compile(r'\$\$[\r\n\s]*(.*?)[\r\n\s]*\$\$',re.DOTALL)
-    inline_equation_pattern = re.compile(r'\$(.*?)\$')
+    inline_equation_pattern = re.compile(r'\$\s*(.*?)\s*\$')
     image_pattern = re.compile(r'!\[.*?]\((.*?)\)')
 
     cards = {}
