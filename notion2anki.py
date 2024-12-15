@@ -151,7 +151,7 @@ def notion2anki(notion_directory, media_directory):
                 question = block_equation_pattern.sub(lambda m:format_block_equation(m), question)
                 question = inline_equation_pattern.sub(lambda m:format_inline_equation(m), question)
 
-                no_image_question = question[:10]
+                no_image_question = question[:15]
 
                 question_image_match = question_image_pattern.search(content)
                 if question_image_match:
@@ -162,7 +162,7 @@ def notion2anki(notion_directory, media_directory):
                         new_image_path = urllib.parse.unquote(image_path)
                         while '%' in new_image_path:
                             new_image_path = urllib.parse.unquote(new_image_path)
-                        new_image_path = f'{no_image_question}_{new_image_path}'
+                        new_image_path = f'IMAGE_{no_image_question}_{new_image_path}'
 
                         if pathlib.Path(image_abs_path).is_file():
                             image_file_name = os.path.join(media_directory, new_image_path)
@@ -210,9 +210,11 @@ def notion2anki(notion_directory, media_directory):
 
                 # 将Markdown内容转换为HTML
                 double_underscore_replace = 'double-underscore'
-                content = content.replace('__', double_underscore_replace)
                 question = markdown.markdown(question, output_format='html', extensions=['markdown.extensions.tables'])
                 question = question.replace(double_underscore_replace, '__')
+                question = re.sub(r'SLASH', r'\\', question, re.DOTALL)
+
+                content = content.replace('__', double_underscore_replace)
                 answer = markdown.markdown(content, output_format='html', extensions=['markdown.extensions.tables'])
                 answer = answer.replace(double_underscore_replace, '__')
                 answer = re.sub(r'SLASH', r'\\', answer, re.DOTALL)
