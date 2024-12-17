@@ -105,12 +105,12 @@ def format_inline_equation(match_object):
     return r'\\(' + rf'{new_equation}' + r'\\)'
 
 def format_block_code(match_object):
-    tab_string = match_object.group(1)
+    #tab_string = match_object.group(1)
     code_language = match_object.group(2)
     code_content = match_object.group(3)
     code_content = code_content.replace('\\', '\\\\')
     html_code = highlight(code_content, lexer_mapping.get(code_language, guess_lexer(code_content)), HtmlFormatter())
-    tab_count = len(re.findall(' ', tab_string))
+    #tab_count = len(re.findall(' ', tab_string))
     html_code = f'<div>' + html_code + f'</div>'
     return html_code
 
