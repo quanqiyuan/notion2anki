@@ -24,7 +24,7 @@ template_notion2anki = genanki.Model(
             'qfmt': '<div class="left-align">{{Question}}</div>',
             'afmt': '''{{FrontSide}}<hr id="answer">
                 <div class="left-align">{{Answer}}</div>
-                <br>{{Notion}}
+                <div class="left-align">{{Notion}}</div>
                 <link rel="stylesheet" href="_tango.css">
             ''',
         },
