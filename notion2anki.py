@@ -211,13 +211,11 @@ def notion2anki(notion_directory, media_directory):
 
                 # 将Markdown内容转换为HTML, 修改双下划线和双\\。因为__和\\会在markdown2html的过程中被修改导致格式错误。
                 double_underscore_replace = 'double-underscore'
-                print(question)
                 question = question.replace('__', double_underscore_replace)
                 question = markdown.markdown(question, output_format='html', extensions=['markdown.extensions.tables'])
                 question = question.replace(double_underscore_replace, '__')
                 question = re.sub(r'SLASH', r'\\', question, re.DOTALL)
                 question = re.sub(r'<img', r'</p><p><img', question, re.DOTALL)
-                print(question)
 
                 content = content.replace('__', double_underscore_replace)
                 answer = markdown.markdown(content, output_format='html', extensions=['markdown.extensions.tables'])
