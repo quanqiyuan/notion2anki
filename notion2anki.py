@@ -215,7 +215,7 @@ def notion2anki(notion_directory, media_directory):
                 question = markdown.markdown(question, output_format='html', extensions=['markdown.extensions.tables'])
                 question = question.replace(double_underscore_replace, '__')
                 question = re.sub(r'SLASH', r'\\', question, re.DOTALL)
-                question = re.sub(r'<img', r'</p><p><img', question, re.DOTALL)
+                question = re.sub(r'<img', r'</p>\n<p><img', question, re.DOTALL)
 
                 content = content.replace('__', double_underscore_replace)
                 answer = markdown.markdown(content, output_format='html', extensions=['markdown.extensions.tables'])
