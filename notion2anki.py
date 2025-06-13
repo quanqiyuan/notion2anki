@@ -21,11 +21,16 @@ template_notion2anki = genanki.Model(
     ],
     templates=[
         {
-            'name': 'Card 1',
-            'qfmt': '<div class="left-align">{{Question}}</div>',
-            'afmt': '''{{FrontSide}}<hr id="answer">
+            'name': 'Notion2Anki-Q&A',
+            'qfmt': '''<div class="left-align">{{Question}}</div>''',
+            'afmt': '''
+                {{FrontSide}}
+                <hr id="answer">
+                <div class="mytag">{{Tags}}</div>
+                <br>
                 <div class="left-align">{{Answer}}</div>
-                <br>{{Notion}}
+                <br>
+                <div class="left-align">{{Notion}}</div>
                 <link rel="stylesheet" href="_tango.css">
             ''',
         },
@@ -43,6 +48,19 @@ template_notion2anki = genanki.Model(
         }
         .wrapper {
             margin-left: 16px;
+        }
+        .mytag { 
+            text-align: left;
+            font-weight: bolder;
+            display: block;
+            color: black;
+            
+            /*以下是长度自适应的设计*/
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 95%;  /* 你可以根据需要设置宽度 */
+            border: 0px solid #ccc;  /* 可选，仅用于可视化边界 */
         }
         a {
             color: blue;
@@ -117,6 +135,8 @@ def notion2anki(notion_directory, media_directory):
     # 正则表达式，用于识别Markdown中的图片标签
     question_pattern = re.compile(r'^\s*#\s+(\S.*\S)+[\r\n]')
     date_pattern = re.compile(r'[^\r\n]*Date:\s*(\S.*\S)\s*[\r\n]')
+    last_edited_time_pattern = re.compile(r'[^\r\n]*Last edited time:\s*(\S.*\S)\s*[\r\n]')
+    tags_pattern = re.compile(r'[^\r\n]*Tags:\s*(\S.*\S)\s*[\r\n]')
     deck_pattern = re.compile(r'[^\r\n]*Deck:\s*(\S.*\S)\s*[\r\n]')
     action_pattern = re.compile(r'[^\r\n]*Action:\s*(\S.*\S)\s+\((\S.*\S)\)\s*[\r\n]')
     question_image_pattern = re.compile(r'[^\r\n]*Question Image:\s*(\S.*\S)[\r\n]')
@@ -166,6 +186,9 @@ def notion2anki(notion_directory, media_directory):
                 if not deck:
                     print(f'!!! {filename} is not decked.')
 
+                tags_match = tags_pattern.search(content)
+                if tags_match:
+                    tags = tuple(tags_match.group(1).replace(' ', '').split(','))
                 action_match = action_pattern.search(content)
                 action_name, action_link = action_match.group(1, 2) if action_match else ('', '')
                 notion = f'<a href="{action_link}">{action_name}</a>'
@@ -175,6 +198,8 @@ def notion2anki(notion_directory, media_directory):
                 content = question_image_pattern.sub('', content)
                 content = action_pattern.sub('', content)
                 content = date_pattern.sub('', content)
+                content = last_edited_time_pattern.sub('', content)
+                content = tags_pattern.sub('', content)
                 content = block_code_pattern.sub(lambda m:format_block_code(m), content)
                 content = inline_code_pattern.sub(lambda m:format_inline_code(m), content)
                 content = block_equation_pattern.sub(r'\1\\\[\2\\\]\3', content)
@@ -207,8 +232,8 @@ def notion2anki(notion_directory, media_directory):
 
                 if deck not in cards:
                     cards[deck] = set()
-                cards[deck].add((question, answer, notion))
+                cards[deck].add((question, answer, notion, tags))
     return cards
 
 
-deck_dict = {'default': 100000000, 'Python': 100000001, 'DFT': 100000002, 'SOC': 100000003, 'STA': 100000004, 'CPU': 100000005, '': 100000006}
+deck_dict = {'default': 100000000, 'Python': 100000001, 'DFT': 100000002, 'SOC': 100000003, 'STA': 100000004, 'CPU': 100000005, '': 100000006, '专业::一生一芯': 100000007}

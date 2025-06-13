@@ -25,7 +25,8 @@ for deck_name, note_set in card_dict.items():
     for aa in note_set:
         note = genanki.Note(
             model=notion2anki.template_notion2anki,
-            fields=aa,
+            fields=aa[0:3],
+            tags = aa[3]
         )
         tmp_deck.add_note(note)
     anki_package = genanki.Package(tmp_deck)
