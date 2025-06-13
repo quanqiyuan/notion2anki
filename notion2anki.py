@@ -153,7 +153,7 @@ def notion2anki(notion_directory, media_directory):
     block_code_pattern = re.compile(r'( *)```(.*?)\n(.*?)```', re.DOTALL)
     inline_code_pattern = re.compile(r'`(.*?)`')
     block_equation_pattern = re.compile(r'\$\$[\r\n\s]*(.*?)[\r\n\s]*\$\$',re.DOTALL)
-    inline_equation_pattern = re.compile(r'\$\s*(.*?)\s*\$')
+    inline_equation_pattern = re.compile(r'\$\s*([\r\n]*?)\s*\$')
     image_pattern = re.compile(r'!\[.*?]\((.*?)\)')
 
     cards = {}
