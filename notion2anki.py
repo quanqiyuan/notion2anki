@@ -251,8 +251,6 @@ def notion2anki(notion_directory, media_directory):
                 # create deck
                 if deck not in cards:
                     cards[deck] = set()
-                cards[deck].add((question, answer, notion))
-
                 cards[deck].add((question, answer, notion, tags))
     return cards
 
