@@ -110,23 +110,32 @@ lexer_mapping = {
 }
 
 
+def replace_slash(match):
+    substring = match.group(1)
+    return re.sub(r'\\', 'SLASH', substring)
+
+def format_block_equation(match_object):
+    new_equation = replace_slash(match_object)
+    return r'\\[' + rf'{new_equation}' + r'\\]'
+
+def format_inline_equation(match_object):
+    new_equation = replace_slash(match_object)
+    return r'\\(' + rf'{new_equation}' + r'\\)'
+
 def format_block_code(match_object):
-    tab_string = match_object.group(1)
+    #tab_string = match_object.group(1)
     code_language = match_object.group(2)
     code_content = match_object.group(3)
-    #code_content = code_content.replace("\\", "\\\\")
-
+    code_content = code_content.replace('\\', '\\\\')
     html_code = highlight(code_content, lexer_mapping.get(code_language, guess_lexer(code_content)), HtmlFormatter())
-    tab_count = len(re.findall(' ', tab_string))
+    #tab_count = len(re.findall(' ', tab_string))
     html_code = f'<div>' + html_code + f'</div>'
-
     return html_code
-
 
 def format_inline_code(match_object):
     result = match_object.group(1)
     result = result.replace(r'*', r'\*')
-    #result = result.replace('\\', '\\\\')
+    result = result.replace('\\', '\\\\')
     return rf'<code>{result}</code>'
 
 
@@ -138,12 +147,13 @@ def notion2anki(notion_directory, media_directory):
     last_edited_time_pattern = re.compile(r'[^\r\n]*Last edited time:\s*(\S.*\S)\s*[\r\n]')
     tags_pattern = re.compile(r'[^\r\n]*Tags:\s*(\S.*\S)\s*[\r\n]')
     deck_pattern = re.compile(r'[^\r\n]*Deck:\s*(\S.*\S)\s*[\r\n]')
+    last_edited_pattern = re.compile(r'[^\r\n]*Last edited time:\s*(\S.*\S)\s*[\r\n]')
     action_pattern = re.compile(r'[^\r\n]*Action:\s*(\S.*\S)\s+\((\S.*\S)\)\s*[\r\n]')
     question_image_pattern = re.compile(r'[^\r\n]*Question Image:\s*(\S.*\S)[\r\n]')
     block_code_pattern = re.compile(r'( *)```(.*?)\n(.*?)```', re.DOTALL)
     inline_code_pattern = re.compile(r'`(.*?)`')
-    block_equation_pattern = re.compile(r'([\r\n]\s*)\$(.*?)\$(\s*[\r\n])')
-    inline_equation_pattern = re.compile(r'\$(.*?)\$')
+    block_equation_pattern = re.compile(r'\$\$[\r\n\s]*(.*?)[\r\n\s]*\$\$',re.DOTALL)
+    inline_equation_pattern = re.compile(r'\$\s*(.*?)\s*\$')
     image_pattern = re.compile(r'!\[.*?]\((.*?)\)')
 
     cards = {}
@@ -151,41 +161,43 @@ def notion2anki(notion_directory, media_directory):
         if filename.endswith(".md"):
             file_path = os.path.join(notion_directory, filename)
             with open(file_path, 'r', encoding='utf-8') as file:
+                # read the markdown content
                 content = file.read()
 
+                # change question format
                 question_match = question_pattern.match(content)
                 question = question_match.group(1) if question_match else ''
-
                 question = block_code_pattern.sub(lambda m:format_block_code(m), question)
                 question = inline_code_pattern.sub(r'<code>\1</code>', question)
-                question = block_equation_pattern.sub(r'\1\\\[\2\\\]\3', question)
-                question = inline_equation_pattern.sub(r'\\\(\1\\\)', question)
+                question = block_equation_pattern.sub(lambda m:format_block_equation(m), question)
+                question = inline_equation_pattern.sub(lambda m:format_inline_equation(m), question)
 
-                no_image_question = question[:10]
-
+                # translate question image name and copy to ANKI collection.media
+                no_image_question = question[:15]
                 question_image_match = question_image_pattern.search(content)
                 if question_image_match:
                     question_image_list = question_image_match.group(1).replace(' ', '').split(',')
                     for image_path in question_image_list:
                         image_abs_path = os.path.abspath(urllib.parse.unquote(os.path.join(notion_directory, image_path)))
-
                         new_image_path = urllib.parse.unquote(image_path)
                         while '%' in new_image_path:
                             new_image_path = urllib.parse.unquote(new_image_path)
-                        new_image_path = f'{no_image_question}_{new_image_path}'
+                        new_image_path = f'IMAGE_{no_image_question}_{new_image_path}'
 
                         if pathlib.Path(image_abs_path).is_file():
                             image_file_name = os.path.join(media_directory, new_image_path)
                             shutil.copy(image_abs_path, image_file_name)
                         else:
                             print(f'File not found or invalid: {image_abs_path}')
-                        question = question + f'![]({new_image_path})'
+                        question = question + f'\n![]({new_image_path})'
 
+                # match deck name
                 deck_match = deck_pattern.search(content)
                 deck = deck_match.group(1) if deck_match else ''
                 if not deck:
                     print(f'!!! {filename} is not decked.')
 
+                # match notion page
                 tags_match = tags_pattern.search(content)
                 if tags_match:
                     tags = tuple(tags_match.group(1).replace(' ', '').split(','))
@@ -193,23 +205,24 @@ def notion2anki(notion_directory, media_directory):
                 action_name, action_link = action_match.group(1, 2) if action_match else ('', '')
                 notion = f'<a href="{action_link}">{action_name}</a>'
 
+                # change content format
                 content = deck_pattern.sub('', content)
                 content = question_pattern.sub('', content)
                 content = question_image_pattern.sub('', content)
                 content = action_pattern.sub('', content)
                 content = date_pattern.sub('', content)
+                content = last_edited_pattern.sub('', content)
                 content = last_edited_time_pattern.sub('', content)
                 content = tags_pattern.sub('', content)
                 content = block_code_pattern.sub(lambda m:format_block_code(m), content)
                 content = inline_code_pattern.sub(lambda m:format_inline_code(m), content)
-                content = block_equation_pattern.sub(r'\1\\\[\2\\\]\3', content)
-                content = inline_equation_pattern.sub(r'\\\(\1\\\)', content)
+                content = block_equation_pattern.sub(lambda m:format_block_equation(m), content)
+                content = inline_equation_pattern.sub(lambda m:format_inline_equation(m), content)
 
-                # 查找并替换Markdown中的图片路径
+                # translate answer image name and copy to ANKI collection.media
                 image_paths = re.findall(image_pattern, content)
                 for image_path in image_paths:
                     image_abs_path = os.path.abspath(urllib.parse.unquote(os.path.join(notion_directory, image_path)))
-
                     new_image_path = urllib.parse.unquote(image_path)
                     while '%' in new_image_path:
                         new_image_path = urllib.parse.unquote(new_image_path)
@@ -222,16 +235,24 @@ def notion2anki(notion_directory, media_directory):
                     else:
                         print(f'File not found or invalid: {image_abs_path}')
 
-                # 将Markdown内容转换为HTML
+                # 将Markdown内容转换为HTML, 修改双下划线和双\\。因为__和\\会在markdown2html的过程中被修改导致格式错误。
                 double_underscore_replace = 'double-underscore'
-                content = content.replace('__', double_underscore_replace)
+                question = question.replace('__', double_underscore_replace)
                 question = markdown.markdown(question, output_format='html', extensions=['markdown.extensions.tables'])
                 question = question.replace(double_underscore_replace, '__')
+                question = re.sub(r'SLASH', r'\\', question, re.DOTALL)
+                question = re.sub(r'<img', r'</p>\n<p><img', question, re.DOTALL)
+
+                content = content.replace('__', double_underscore_replace)
                 answer = markdown.markdown(content, output_format='html', extensions=['markdown.extensions.tables'])
                 answer = answer.replace(double_underscore_replace, '__')
+                answer = re.sub(r'SLASH', r'\\', answer, re.DOTALL)
 
+                # create deck
                 if deck not in cards:
                     cards[deck] = set()
+                cards[deck].add((question, answer, notion))
+
                 cards[deck].add((question, answer, notion, tags))
     return cards
 
